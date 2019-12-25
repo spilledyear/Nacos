@@ -125,6 +125,7 @@ public class ServerListManager {
         String namespace = properties.getProperty(PropertyKeyConst.NAMESPACE);
         initParam(properties);
         if (StringUtils.isNotEmpty(serverAddrsStr)) {
+
             isFixed = true;
             List<String> serverAddrs = new ArrayList<String>();
             String[] serverAddrsArr = serverAddrsStr.split(",");
@@ -133,6 +134,7 @@ public class ServerListManager {
                     serverAddrs.add(serverAddr);
                 } else {
                     String[] serverAddrArr = serverAddr.split(":");
+
                     if (serverAddrArr.length == 1) {
                         serverAddrs.add(HTTP + serverAddrArr[0] + ":" + ParamUtil.getDefaultServerPort());
                     } else {

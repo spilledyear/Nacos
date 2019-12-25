@@ -272,6 +272,11 @@ public class ClientWorker {
         final String dataId = cacheData.dataId;
         final String group = cacheData.group;
         final String tenant = cacheData.tenant;
+
+        /**
+         * `FailoverFile`在客户端不会自动生成，它是在服务端生成的，当更新了一条配置之后，就会反应到这个文件中。
+         * 所以如果想在客户端使用到这个功能，需要手工将文件添加到客户端，然后客户端就不会去读取服务端的配置了，也许某些场景下可以用到
+         */
         File path = LocalConfigInfoProcessor.getFailoverFile(agent.getName(), dataId, group, tenant);
 
         // 没有 -> 有
@@ -296,6 +301,10 @@ public class ClientWorker {
         }
 
         // 有变更
+        /**
+         * isUseLocalConfig=true && && path.exists() && cacheData.getLocalConfigInfoVersion() != path.lastModified()
+         * 说明配置有更新，所以此时需要更新 CacheData
+         */
         if (cacheData.isUseLocalConfigInfo() && path.exists()
             && cacheData.getLocalConfigInfoVersion() != path.lastModified()) {
             String content = LocalConfigInfoProcessor.getFailover(agent.getName(), dataId, group, tenant);
@@ -361,6 +370,7 @@ public class ClientWorker {
 
         List<String> headers = new ArrayList<String>(2);
         headers.add("Long-Pulling-Timeout");
+        // timeout 默认30s
         headers.add("" + timeout);
 
         // told server do not hang me up if new initializing cacheData added in
@@ -498,8 +508,10 @@ public class ClientWorker {
                     if (cacheData.getTaskId() == taskId) {
                         cacheDatas.add(cacheData);
                         try {
+                            // 从本地文件中检查是否需要更新配置信息
                             checkLocalConfig(cacheData);
                             if (cacheData.isUseLocalConfigInfo()) {
+                                // 如果有更新，需要更新Listener的MD5值，并执行Listener逻辑
                                 cacheData.checkListenerMd5();
                             }
                         } catch (Exception e) {
@@ -509,6 +521,7 @@ public class ClientWorker {
                 }
 
                 // check server config
+                // 排除本地已更新的值，然后将每个符合条件的配置信息的 `group + dataId[+tenant]` 拼成一个字符串传给服务端校验，然后服务端会返回一个需要更新的`List<String>`，该列表里面的每个元素代表一个配置的 `group + dataId[+tenant]`
                 List<String> changedGroupKeys = checkUpdateDataIds(cacheDatas, inInitializingCacheList);
 
                 for (String groupKey : changedGroupKeys) {
@@ -520,6 +533,7 @@ public class ClientWorker {
                         tenant = key[2];
                     }
                     try {
+                        // 从服务端拉去配置信息更新
                         String content = getServerConfig(dataId, group, tenant, 3000L);
                         CacheData cache = cacheMap.get().get(GroupKey.getKeyTenant(dataId, group, tenant));
                         cache.setContent(content);
@@ -533,7 +547,12 @@ public class ClientWorker {
                         LOGGER.error(message, ioe);
                     }
                 }
+
                 for (CacheData cacheData : cacheDatas) {
+                    /**
+                     * 为什么要设置两个这样的条件？
+                     * `首次出现在map中并且是首次更新`代表`cacheData.isInitializing() == true`，但前面又有一个`cacheData.isInitializing() == false`，啥意思？
+                     */
                     if (!cacheData.isInitializing() || inInitializingCacheList
                         .contains(GroupKey.getKeyTenant(cacheData.dataId, cacheData.group, cacheData.tenant))) {
                         cacheData.checkListenerMd5();

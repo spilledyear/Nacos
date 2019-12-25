@@ -49,7 +49,7 @@ public class ConfigLongPoll_ITCase {
     @Before
     public void init() throws NacosException {
         Properties properties = new Properties();
-        properties.put(PropertyKeyConst.SERVER_ADDR, "127.0.0.1:" + port);
+        properties.put(PropertyKeyConst.SERVER_ADDR, "127.0.0.1:" + 8848);
         properties.put(PropertyKeyConst.CONFIG_LONG_POLL_TIMEOUT, "20000");
         properties.put(PropertyKeyConst.CONFIG_RETRY_TIME, "3000");
         properties.put(PropertyKeyConst.MAX_RETRY, "5");
@@ -59,7 +59,7 @@ public class ConfigLongPoll_ITCase {
     @Test
     public void test() throws InterruptedException, NacosException {
 
-        configService.addListener("test", "DEFAULT_GROUP", new Listener() {
+        configService.addListener("one", "LSZ", new Listener() {
             @Override
             public Executor getExecutor() {
                 return null;
@@ -71,20 +71,11 @@ public class ConfigLongPoll_ITCase {
             }
         });
 
-        configService.addListener("test-1", "DEFAULT_GROUP", new Listener() {
-            @Override
-            public Executor getExecutor() {
-                return null;
-            }
+        System.out.println(configService.getConfig("one", "LSZ", 100000));
+//        System.out.println(configService.removeConfig("one", "LSZ"));
+//        System.out.println(configService.publishConfig("one", "LSZ", "大美女"));
 
-            @Override
-            public void receiveConfigInfo(String configInfo) {
-                System.out.println(configInfo);
-            }
-        });
-
-        TimeUnit.SECONDS.sleep(10);
-
+        TimeUnit.SECONDS.sleep(100);
     }
 
 }

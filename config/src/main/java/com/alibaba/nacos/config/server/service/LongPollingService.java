@@ -386,6 +386,8 @@ public class LongPollingService extends AbstractEventListener {
                                 "fix", RequestUtil.getRemoteIp((HttpServletRequest)asyncContext.getRequest()),
                                 "polling",
                                 clientMd5Map.size(), probeRequestSize);
+
+                            // 根据客户端传过来的key列表，找到该发生了变更的配置的key列表
                             List<String> changedGroups = MD5Util.compareMd5(
                                 (HttpServletRequest)asyncContext.getRequest(),
                                 (HttpServletResponse)asyncContext.getResponse(), clientMd5Map);
